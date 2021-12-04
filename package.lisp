@@ -81,6 +81,8 @@
            ;; conditions
            #:fsocket-error
            #:fsocket-short-buffer
+           #:posix-error
+           #:posix-error-code
 
            #:multicast-join 
            #:open-multicast-socket 
