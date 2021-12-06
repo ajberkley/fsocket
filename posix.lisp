@@ -776,27 +776,29 @@ Returns a list of registered pollfd structures. Users should check the REVENTS s
            (type (or null integer) timeout))
   (let* ((fds (poll-context-fds pc))
          (count (length fds)))
-    (with-foreign-object (p '(:struct pollfd) count)
+    (values
+     (with-foreign-object (p '(:struct pollfd) count)
       (do ((%fds fds (cdr %fds))
            (i 0 (1+ i)))
           ((null %fds))
         (setf (mem-aref p '(:struct pollfd) i) (car %fds)))
-      (let ((sts (%poll p count (or timeout -1))))
-        (cond
-          ((< sts 0)
-           (error "error"))
-          ((= sts 0)
-           ;; timeout
-           nil)
-          (t
-           (do ((i 0 (1+ i))
-                (%fds fds (cdr %fds))
-                (ret fds))
-               ((null %fds) ret)
-             (let ((revents (foreign-slot-value (inc-pointer p (* i (foreign-type-size '(:struct pollfd))))
-                                                '(:struct pollfd) 
-						'revents)))
-	       (setf (pollfd-revents (car %fds)) revents)))))))))
+       (let ((sts (%poll p count (or timeout -1))))
+         (cond
+           ((< sts 0)
+            ;; usually EAGAIN
+            (get-last-error))
+           ((= sts 0)
+            ;; timeout
+            nil)
+           (t
+            (do ((i 0 (1+ i))
+                 (%fds fds (cdr %fds))
+                 (ret fds))
+                ((null %fds) ret)
+              (let ((revents (foreign-slot-value (inc-pointer p (* i (foreign-type-size '(:struct pollfd))))
+                                                 '(:struct pollfd)
+						 'revents)))
+	        (setf (pollfd-revents (car %fds)) revents))))))))))
 
 
 
